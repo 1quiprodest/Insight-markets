@@ -1,4 +1,3 @@
-import React from 'react'
 import type { EventItem } from '../types/event'
 import VoteButtons from './VoteButtons'
 

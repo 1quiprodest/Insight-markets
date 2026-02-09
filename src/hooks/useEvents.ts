@@ -55,7 +55,7 @@ export default function useEvents() {
 
     // try API
     try {
-      const initData = window.Telegram?.WebApp?.initData
+      const initData = (window as any).Telegram?.WebApp?.initData
       if (initData) {
         const res = await fetch('/api/events', {
           method: 'POST',
@@ -83,7 +83,7 @@ export default function useEvents() {
     )
 
     try {
-      const initData = window.Telegram?.WebApp?.initData
+      const initData = (window as any).Telegram?.WebApp?.initData
       if (initData) {
         await fetch('/api/vote', {
           method: 'POST',
