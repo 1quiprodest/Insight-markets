@@ -22,9 +22,11 @@ function App() {
 
     const user = tg?.initDataUnsafe?.user;
 
-    if (user?.id === ADMIN_ID || !user) { 
-      setIsAdmin(true); 
-    }
+   if (user?.id === ADMIN_ID) { 
+  setIsAdmin(true); 
+} else {
+  setIsAdmin(false);
+}
 
     fetchEvents();
   }, []);
@@ -54,7 +56,7 @@ function App() {
       validUntil: Math.floor(Date.now() / 1000) + 120,
       messages: [
         {
-          address: "ВАШ_АДРЕС_КОШЕЛЬКА", // ЗАМЕНИ ЭТО НА СВОЙ АДРЕС
+          address: "UQD1XlnLHSOGWGKgxEoLngeJFap7-i_yruPhDmVmX6UOP_Iq", // ЗАМЕНИ ЭТО НА СВОЙ АДРЕС
           amount: nanoAmount,
         },
       ],
