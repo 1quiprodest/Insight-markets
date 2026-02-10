@@ -5,8 +5,7 @@ import App from './App.tsx'
 import { TonConnectUIProvider } from '@tonconnect/ui-react'
 
 // ТЕПЕРЬ ТУТ ССЫЛКА НА VERCEL, А НЕ NGROK
-const manifestUrl = 'insight-markets-nnu5-git-main-1quiprodests-projects.vercel.app';
-
+const manifestUrl = 'https://insightmarkets.live/tonconnect-manifest.json';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <TonConnectUIProvider manifestUrl={manifestUrl}>
