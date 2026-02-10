@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+// Путь '../build/...' сработает, если App.tsx лежит в src/, а build в корне miniapp_tg-main
+import { storeAdd } from './Predictions/Predictions_Predictions';
+import { beginCell, toNano } from '@ton/core';
 
 const ADMIN_ID = 458417089; 
+const CONTRACT_ADDRESS = "EQD0JqWNoqQepA7pC3BtELp6wrPRM8ReakHzwbYvDs-JVzqD";
 
 function App() {
   const [events, setEvents] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tonConnectUI] = useTonConnectUI(); // Хук для работы с кошельком
+  const [tonConnectUI] = useTonConnectUI();
 
-  // Состояния для формы создания
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Крипта');
@@ -21,12 +24,11 @@ function App() {
     tg?.expand();
 
     const user = tg?.initDataUnsafe?.user;
-
-   if (user?.id === ADMIN_ID) { 
-  setIsAdmin(true); 
-} else {
-  setIsAdmin(false);
-}
+    if (user?.id === ADMIN_ID) { 
+      setIsAdmin(true); 
+    } else {
+      setIsAdmin(false);
+    }
 
     fetchEvents();
   }, []);
@@ -49,40 +51,33 @@ function App() {
       return;
     }
 
-    const amount = 1; // Ставка 1 TON
-    const nanoAmount = (amount * 1000000000).toString(); // В нанотонах
-
-    const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 120,
-      messages: [
-        {
-          address: "UQD1XlnLHSOGWGKgxEoLngeJFap7-i_yruPhDmVmX6UOP_Iq", // ЗАМЕНИ ЭТО НА СВОЙ АДРЕС
-          amount: nanoAmount,
-        },
-      ],
-    };
-
     try {
-      const result = await tonConnectUI.sendTransaction(transaction);
+      const amount = 1; // 1 TON
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 120,
+        messages: [
+          {
+            address: CONTRACT_ADDRESS,
+            amount: toNano(amount.toString()).toString(),
+          },
+        ],
+      });
 
-      if (result) {
-        const tg = (window as any).Telegram?.WebApp;
-        const user = tg?.initDataUnsafe?.user;
+      const tg = (window as any).Telegram?.WebApp;
+      const user = tg?.initDataUnsafe?.user;
 
-        // Записываем ставку в базу
-        const { error } = await supabase
-          .from('bets')
-          .insert([{
-            event_id: eventId,
-            user_id: user?.id?.toString() || 'browser_user',
-            amount: amount,
-            selection: choice
-          }]);
+      const { error } = await supabase
+        .from('bets')
+        .insert([{
+          event_id: eventId,
+          user_id: user?.id?.toString() || 'browser_user',
+          amount: amount,
+          selection: choice
+        }]);
 
-        if (!error) {
-          alert(`Успешно! Ставка на ${choice === 'yes' ? 'ДА' : 'НЕТ'} принята.`);
-          fetchEvents();
-        }
+      if (!error) {
+        alert(`Успешно! Ставка на ${choice === 'yes' ? 'ДА' : 'НЕТ'} принята.`);
+        fetchEvents();
       }
     } catch (e) {
       console.error(e);
@@ -90,34 +85,49 @@ function App() {
     }
   }
 
+  // Функция создания пари
   async function createEvent() {
-    if (!newTitle) return;
+    if (!newTitle || !tonConnectUI.connected) return;
 
-    const { error } = await supabase
-      .from('events')
-      .insert([{ 
-        title: newTitle, 
-        category: newCategory, 
-        status: 'active',
-        total_pool: 0 
-      }]);
+    const body = beginCell()
+      .store(storeAdd({ $$type: 'Add', amount: 1n }))
+      .endCell();
 
-    if (!error) {
-      setNewTitle('');
-      setShowForm(false);
-      fetchEvents();
-    } else {
-      alert('Ошибка: ' + error.message);
+    try {
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 60,
+        messages: [
+          {
+            address: CONTRACT_ADDRESS,
+            amount: toNano('0.05').toString(),
+            payload: body.toBoc().toString('base64'),
+          },
+        ],
+      });
+
+      const { error } = await supabase
+        .from('events')
+        .insert([{ 
+          title: newTitle, 
+          category: newCategory, 
+          status: 'active',
+          created_at: new Date().toISOString()
+        }]);
+
+      if (!error) {
+        setNewTitle('');
+        setShowForm(false);
+        fetchEvents();
+        alert("Транзакция отправлена! Пари скоро появится.");
+      }
+    } catch (e) {
+      console.error("Ошибка транзакции:", e);
+      alert("Ошибка при создании пари.");
     }
-  }
-
-  if (loading && events.length === 0) {
-    return <div className="p-10 text-center font-sans text-gray-500">Загрузка Insight Markets...</div>;
   }
 
   return (
     <div className="max-w-md mx-auto p-4 bg-gray-50 min-h-screen font-sans text-gray-900">
-      {/* Шапка */}
       <header className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-black tracking-tighter">INSIGHT</h1>
@@ -133,7 +143,6 @@ function App() {
         </div>
       </header>
 
-      {/* Кнопка открытия формы (только для админа) */}
       {isAdmin && !showForm && (
         <button 
           onClick={() => setShowForm(true)}
@@ -143,11 +152,9 @@ function App() {
         </button>
       )}
 
-      {/* Форма создания (только для админа) */}
       {isAdmin && showForm && (
         <div className="bg-white p-5 rounded-2xl shadow-xl border-2 border-blue-500 mb-6">
           <h2 className="font-black text-lg mb-4">Настройка нового пари</h2>
-          
           <label className="text-xs font-bold text-gray-400 uppercase">Вопрос</label>
           <input 
             type="text" 
@@ -170,17 +177,12 @@ function App() {
           </select>
 
           <div className="flex gap-2">
-            <button onClick={createEvent} className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold">
-              Опубликовать
-            </button>
-            <button onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-bold">
-              Отмена
-            </button>
+            <button onClick={createEvent} className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold">Опубликовать</button>
+            <button onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-bold">Отмена</button>
           </div>
         </div>
       )}
 
-      {/* Список событий */}
       <div className="space-y-4">
         {events.length === 0 && !loading && (
           <div className="text-center py-20 text-gray-300 font-bold">Активных рынков пока нет</div>
@@ -198,23 +200,11 @@ function App() {
               </div>
             </div>
             
-            <h3 className="text-lg font-bold leading-tight mb-5 pr-4">
-              {event.title}
-            </h3>
+            <h3 className="text-lg font-bold leading-tight mb-5 pr-4">{event.title}</h3>
             
             <div className="flex gap-2">
-              <button 
-                onClick={() => placeBet(event.id, 'yes')}
-                className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition shadow-lg shadow-gray-200"
-              >
-                ДА
-              </button>
-              <button 
-                onClick={() => placeBet(event.id, 'no')}
-                className="flex-1 bg-white border-2 border-gray-100 text-gray-900 py-4 rounded-2xl font-bold active:scale-95 transition"
-              >
-                НЕТ
-              </button>
+              <button onClick={() => placeBet(event.id, 'yes')} className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold active:scale-95 transition shadow-lg shadow-gray-200">ДА</button>
+              <button onClick={() => placeBet(event.id, 'no')} className="flex-1 bg-white border-2 border-gray-100 text-gray-900 py-4 rounded-2xl font-bold active:scale-95 transition">НЕТ</button>
             </div>
           </div>
         ))}
