@@ -13,7 +13,6 @@ declare global {
             button_text_color?: string;
             secondary_bg_color?: string;
           };
-          initData?: string;
           initDataUnsafe?: {
             user?: {
               id: number;

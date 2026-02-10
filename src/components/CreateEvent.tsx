@@ -8,7 +8,6 @@ export default function CreateEvent({ onCreate }: { onCreate: (args: { title: st
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
-    // include initData when calling onCreate (hook will post to API if available)
     onCreate({ title: title.trim(), description: description.trim() || undefined, startsAt: startsAt || undefined })
     setTitle('')
     setDescription('')
