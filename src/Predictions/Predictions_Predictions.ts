@@ -1,23 +1,6 @@
 // @ts-nocheck
 
-import {
-    Cell,
-    Slice,
-    Address,
-    Builder,
-    beginCell,
-    TupleReader,
-    contractAddress,
-    type ContractProvider,
-    type Sender,
-    type Contract,
-    type ContractABI,
-    type ABIType,
-    type ABIGetter,
-    type ABIReceiver,
-    TupleBuilder,
-    type DictionaryValue
-} from '@ton/core';
+import { type TupleItem, type Sender, type Contract } from '@ton/core';
 
 export type DataSize = {
     $$type: 'DataSize';

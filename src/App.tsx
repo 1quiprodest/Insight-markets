@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
-// Путь '../build/...' сработает, если App.tsx лежит в src/, а build в корне miniapp_tg-main
 import { storeAdd } from './Predictions/Predictions_Predictions';
 import { beginCell, toNano } from '@ton/core';
 
