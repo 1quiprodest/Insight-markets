@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { storeAdd } from './Predictions/Predictions_Predictions';
-import { beginCell, toNano } from '@ton/core';
+import { beginCell, toNano, Address } from '@ton/core';
 
-const ADMIN_ID = 458417089; 
+const ADMIN_ID = 458417089;
+const MY_WALLET_FRIENDLY = "UQAl-kEbJ5lwSqq5eigkDY_R8CV9vMsotY0SMP5_PDSU2CEu";
 const CONTRACT_ADDRESS = "EQD0JqWNoqQepA7pC3BtELp6wrPRM8ReakHzwbYvDs-JVzqD";
 
 function App() {
@@ -17,32 +18,48 @@ function App() {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('Крипта');
 
+  // 1. Проверка через Telegram ID (срабатывает сразу при загрузке)
   useEffect(() => {
     const tg = (window as any).Telegram?.WebApp;
     tg?.ready();
     tg?.expand();
 
     const user = tg?.initDataUnsafe?.user;
-    if (user?.id === ADMIN_ID) { 
-      setIsAdmin(true); 
-    } else {
-      setIsAdmin(false);
+    if (user?.id === ADMIN_ID) {
+      setIsAdmin(true);
     }
 
     fetchEvents();
   }, []);
-  
-useEffect(() => {
+
+  // 2. Проверка через подключенный кошелек (Tonkeeper и др.)
+  useEffect(() => {
     const unsubscribe = tonConnectUI.onStatusChange((wallet) => {
+      const tg = (window as any).Telegram?.WebApp;
+      const isTgAdmin = tg?.initDataUnsafe?.user?.id === ADMIN_ID;
+
       if (wallet) {
-        console.log("Кошелек успешно подключен!", wallet);
-        // Если QR-код завис, принудительное обновление через лог часто помогает реакту "проснуться"
+        // Конвертируем адрес из любого формата в понятный нам Friendly
+        const connectedAddress = Address.parse(wallet.account.address).toString({ 
+          testOnly: false, 
+          bounceable: false 
+        });
+
+        console.log("Подключен кошелек:", connectedAddress);
+
+        // Если это твой кошелек ИЛИ ты админ в ТГ — даем права
+        if (connectedAddress === MY_WALLET_FRIENDLY || isTgAdmin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } else {
+        // Если кошелек отключили, права остаются только если ты админ в ТГ
+        setIsAdmin(isTgAdmin);
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [tonConnectUI]);
 
   async function fetchEvents() {
