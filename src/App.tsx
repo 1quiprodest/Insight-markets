@@ -72,7 +72,48 @@ function App() {
     if (data) setEvents(data);
     setLoading(false);
   }
+const isTelegram = !!(window as any).Telegram?.WebApp?.initData;
 
+  if (!isTelegram && import.meta.env.PROD) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#1a1a1a', color: 'white', textAlign: 'center', padding: '20px' }}>
+        <div>
+          <h1>🤖 Доступ ограничен</h1>
+          <p>Пожалуйста, откройте это приложение через Telegram бота.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) return <div className="p-4 text-white">Загрузка...</div>;
+
+  return (
+    <div className="min-h-screen bg-[#1a1a1a] text-white p-4 pb-24">
+      <header className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Insight Markets</h1>
+        <TonConnectButton />
+      </header>
+
+      {isAdmin && (
+        <button 
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-600 w-full py-3 rounded-lg mb-6 font-bold"
+        >
+          {showForm ? 'Закрыть форму' : 'Создать пари'}
+        </button>
+      )}
+
+      {/* Тут будет твой список карточек с событиями */}
+      <div className="space-y-4">
+        {events.map(event => (
+          <div key={event.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
+            <h3 className="text-lg font-semibold">{event.title}</h3>
+            <p className="text-gray-400 text-sm">{event.category}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   // Функция для совершения ставки
   async function placeBet(eventId: number, choice: 'yes' | 'no') {
     if (!tonConnectUI.connected) {
