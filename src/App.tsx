@@ -31,6 +31,19 @@ function App() {
 
     fetchEvents();
   }, []);
+  
+useEffect(() => {
+    const unsubscribe = tonConnectUI.onStatusChange((wallet) => {
+      if (wallet) {
+        console.log("Кошелек успешно подключен!", wallet);
+        // Если QR-код завис, принудительное обновление через лог часто помогает реакту "проснуться"
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [tonConnectUI]);
 
   async function fetchEvents() {
     setLoading(true);
