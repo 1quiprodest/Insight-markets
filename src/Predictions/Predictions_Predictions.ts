@@ -4,21 +4,17 @@ import {
     Address,
     Builder,
     beginCell,
-    ComputeError,
-    TupleItem,
     TupleReader,
-    Dictionary,
     contractAddress,
-    address,
-    ContractProvider,
-    Sender,
-    Contract,
-    ContractABI,
-    ABIType,
-    ABIGetter,
-    ABIReceiver,
+    type ContractProvider,
+    type Sender,
+    type Contract,
+    type ContractABI,
+    type ABIType,
+    type ABIGetter,
+    type ABIReceiver,
     TupleBuilder,
-    DictionaryValue
+    type DictionaryValue
 } from '@ton/core';
 
 export type DataSize = {
